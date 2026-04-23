@@ -10,7 +10,7 @@
 - **高亮显示**：替换后的词汇会以浅红色背景高亮，方便识别
 - **大小写智能匹配**：
   - 搜索时不区分大小写（`police officer` 可以匹配 `Police officer`）
-  - 替换时保留原词的大小写格式（`Police officer` → `Police officer`，`POLICE OFFICER` → `POLICE OFFICER`）
+  - 替换时保留原词的大小写格式（`Policeman` → `Police officer`，`POLICEMAN` → `POLICE OFFICER`）
 
 ### 📝 自定义词库
 - **添加自定义词汇**：支持单个添加或批量添加
@@ -74,12 +74,12 @@ _（待发布）_
 
 | 原词 | 替换词 |
 |------|--------|
-| 母合约 | 母合约 |
-| 母组件 | 母组件 |
-| 司机 | 司机 |
-| 老板 | 老板 |
-| 单女 | 单女 |
-| 开山作 | 开山作 |
+| 父合约 | 母合约 |
+| history | herstory |
+| 女司机 | 司机 |
+| 老板娘 | 老板 |
+| 剩女 | 单女 |
+| 处女作 | 开山作 |
 | ... | ... |
 
 _完整初始词库请查看 `dictionary.js` 文件_
