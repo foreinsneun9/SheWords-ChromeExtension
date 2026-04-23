@@ -67,6 +67,7 @@ function isInsideSkipTag(node) {
   while (el) {
     if (SKIP_TAGS.has(el.tagName)) return true;
     if (el.classList && el.classList.contains('shewords-highlight')) return true;
+    if (el.isContentEditable) return true;
     el = el.parentElement;
   }
   return false;
