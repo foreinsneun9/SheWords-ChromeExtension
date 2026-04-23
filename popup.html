@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SheWords</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 320px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      color: #333;
+      background: #fff;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      background: #F3FFE3;
+      border-bottom: 1px solid #d4edba;
+    }
+    .header h1 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #2d6a2d;
+      letter-spacing: 0.5px;
+    }
+
+    .toggle-wrap { display: flex; align-items: center; gap: 8px; }
+    .toggle-label { font-size: 12px; color: #555; }
+    .toggle {
+      position: relative;
+      width: 40px;
+      height: 22px;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute;
+      inset: 0;
+      background: #ccc;
+      border-radius: 22px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .slider::before {
+      content: '';
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      left: 3px;
+      top: 3px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    input:checked + .slider { background: #5cb85c; }
+    input:checked + .slider::before { transform: translateX(18px); }
+
+    .section-title {
+      padding: 10px 16px 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .word-list {
+      max-height: 200px;
+      overflow-y: auto;
+      border-bottom: 1px solid #eee;
+    }
+    .word-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 16px;
+      border-bottom: 1px solid #f5f5f5;
+    }
+    .word-item:last-child { border-bottom: none; }
+    .word-pair { color: #444; }
+    .word-pair .arrow { color: #aaa; margin: 0 6px; }
+    .word-pair .replacement { color: #2d6a2d; font-weight: 500; }
+    .btn-delete {
+      background: none;
+      border: none;
+      color: #ccc;
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+      padding: 2px 4px;
+      border-radius: 3px;
+      transition: color 0.15s;
+    }
+    .btn-delete:hover { color: #e55; }
+    .empty-hint {
+      padding: 16px;
+      text-align: center;
+      color: #bbb;
+      font-size: 13px;
+    }
+
+    .add-form {
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .input-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      width: 100%;
+    }
+    .input-row input {
+      flex: 1;
+      min-width: 0;
+      padding: 6px 8px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .input-row input:focus { border-color: #5cb85c; }
+    .input-row .arrow-label { color: #aaa; font-size: 13px; flex-shrink: 0; }
+    .btn-add {
+      width: 100%;
+      padding: 8px;
+      background: #5cb85c;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-add:hover { background: #4cae4c; }
+    .btn-export {
+      width: 100%;
+      padding: 8px;
+      background: #e8f7d9;
+      color: #2d6a2d;
+      border: 1px solid #cce6b5;
+      border-radius: 5px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-export:hover { background: #def2ca; }
+    .btn-secondary {
+      width: 100%;
+      padding: 8px;
+      background: #fff;
+      color: #2d6a2d;
+      border: 1px solid #cce6b5;
+      border-radius: 5px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-secondary:hover { background: #f7fff0; }
+    .sync-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #666;
+    }
+    .scope-badge {
+      margin-left: 8px;
+      font-size: 11px;
+      color: #7aa35b;
+      background: #eef9e2;
+      border: 1px solid #d5e9c2;
+      border-radius: 999px;
+      padding: 1px 6px;
+    }
+    .batch-title {
+      margin-top: 6px;
+      font-size: 12px;
+      color: #666;
+      font-weight: 600;
+    }
+    .batch-input {
+      width: 100%;
+      min-height: 72px;
+      resize: vertical;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 8px;
+      font-size: 12px;
+      font-family: Consolas, "Courier New", monospace;
+    }
+    .error-msg {
+      font-size: 12px;
+      color: #e55;
+      min-height: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>SheWords</h1>
+    <div class="toggle-wrap">
+      <span class="toggle-label" id="toggle-label">开启中</span>
+      <label class="toggle">
+        <input type="checkbox" id="toggle-enabled" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <div class="section-title">自定义词库添加记录</div>
+  <div class="word-list" id="word-list">
+    <div class="empty-hint">暂无自定义词汇</div>
+  </div>
+
+  <div class="add-form">
+    <div class="input-row">
+      <input type="text" id="input-original" placeholder="原词">
+      <span class="arrow-label">→</span>
+      <input type="text" id="input-replacement" placeholder="替换词">
+    </div>
+    <label class="sync-wrap">
+      <input type="checkbox" id="sync-to-external" checked>
+      同步到外部词库（持久化）
+    </label>
+    <div class="error-msg" id="error-msg"></div>
+    <button class="btn-add" id="btn-add">添加</button>
+    <button class="btn-export" id="btn-export">导出外部词库文件</button>
+    <input type="file" id="file-import" accept=".json,application/json" hidden>
+    <button class="btn-secondary" id="btn-import">导入外部词库文件</button>
+    <div class="batch-title">批量添加（支持 JSON 或 每行“原词=>替换词”）</div>
+    <textarea class="batch-input" id="batch-input" placeholder='{"词A":"词B"} 或&#10;词A=>词B'></textarea>
+    <button class="btn-secondary" id="btn-batch-add">批量添加</button>
+  </div>
+
+  <script src="dictionary.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
