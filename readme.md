@@ -113,6 +113,7 @@ SheWords/
 1. 提交 Issue 说明词汇对
 2. 直接修改 `dictionary.js` 并提交 PR
 3. 通过扩展的导出功能分享你的自定义词库
+也可以将你希望添加的词汇对及对SheWords的建议填入表格：https://docs.qq.com/sheet/DVFdYSXhrWXpVdkNC?nlc=1&tab=BB08J2
 
 ## 📄 开源协议
 
