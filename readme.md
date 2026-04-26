@@ -43,7 +43,7 @@ _（待发布）_
 
 1. **启用扩展**：点击工具栏中的 SheWords 图标，确保开关处于「开启中」状态
 2. **浏览网页**：正常浏览任何网页，扩展会自动识别并替换性别偏见词汇
-3. **查看替换**：被替换的词汇会以浅绿色背景高亮显示
+3. **查看替换**：被替换的词汇会以粉色背景高亮显示
 
 ### 添加自定义词汇
 
@@ -111,9 +111,9 @@ SheWords/
 
 如果你有更多性别偏见词汇的替换建议，可以：
 1. 提交 Issue 说明词汇对
-2. 直接修改 `dictionary.js` 并提交 PR
+2. 在 `external_dictionary` 文件夹新增你的词库文件(命名建议使用你的词库主题，如德语替换词、网文替换词等)并提交 PR
 3. 通过扩展的导出功能分享你的自定义词库
-也可以将你希望添加的词汇对及对SheWords的建议填入表格：https://docs.qq.com/sheet/DVFdYSXhrWXpVdkNC?nlc=1&tab=BB08J2
+4. 将你希望添加的词汇对及对SheWords的建议填入表格：https://docs.qq.com/sheet/DVFdYSXhrWXpVdkNC?nlc=1&tab=BB08J2
 
 ## 📄 开源协议
 
@@ -124,7 +124,3 @@ MIT License
 如有问题或建议，欢迎通过以下方式联系：
 - 提交 GitHub Issue
 - 发送邮件至 [winterreeeeeeee@gmail.com]
-
----
-
-**让语言更包容，从 SheWords 开始。**
