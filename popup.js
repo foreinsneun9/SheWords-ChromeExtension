@@ -1,3 +1,4 @@
+const dictSearch = document.getElementById('dict-search');
 const toggleEl = document.getElementById('toggle-enabled');
 const toggleLabel = document.getElementById('toggle-label');
 const wordList = document.getElementById('word-list');
@@ -8,6 +9,7 @@ const btnExport = document.getElementById('btn-export');
 const btnImport = document.getElementById('btn-import');
 const fileImport = document.getElementById('file-import');
 const btnBatchAdd = document.getElementById('btn-batch-add');
+const btnBatchDelete = document.getElementById('btn-batch-delete');
 const batchInput = document.getElementById('batch-input');
 const syncToExternal = document.getElementById('sync-to-external');
 const errorMsg = document.getElementById('error-msg');
@@ -25,8 +27,15 @@ function esc(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-function renderWordList(persistentRecords, sessionRecords) {
+function renderWordList(persistentRecords, sessionRecords, blockedBuiltIn) {
+  const blocked = new Set(blockedBuiltIn || []);
   const scopedEntries = [];
+
+  Object.entries(BUILT_IN_DICT).forEach(([orig, repl]) => {
+    if (!blocked.has(orig)) {
+      scopedEntries.push({ orig, repl, scope: 'builtin' });
+    }
+  });
   Object.entries(persistentRecords).forEach(([orig, repl]) => {
     scopedEntries.push({ orig, repl, scope: 'persistent' });
   });
@@ -34,15 +43,29 @@ function renderWordList(persistentRecords, sessionRecords) {
     scopedEntries.push({ orig, repl, scope: 'session' });
   });
 
-  const entries = scopedEntries.sort((a, b) => a.orig.localeCompare(b.orig, 'zh-Hans-CN'));
-  if (entries.length === 0) {
+  const isEnglish = s => /^[a-zA-Z]/.test(s);
+  const entries = scopedEntries.sort((a, b) => {
+    const aEn = isEnglish(a.orig);
+    const bEn = isEnglish(b.orig);
+    if (aEn !== bEn) return aEn ? -1 : 1;
+    return b.orig.localeCompare(a.orig, aEn ? 'en' : 'zh-Hans-CN');
+  });
+
+  const keyword = (dictSearch.value || '').trim().toLowerCase();
+  const filteredEntries = keyword
+    ? entries.filter(({ orig, repl }) =>
+        orig.toLowerCase().includes(keyword) || repl.toLowerCase().includes(keyword))
+    : entries;
+
+  if (filteredEntries.length === 0) {
     wordList.innerHTML = '<div class="empty-hint">暂无自定义词汇</div>';
     return;
   }
-  wordList.innerHTML = entries.map(({ orig, repl, scope }) => `
+  const badgeLabel = { builtin: '内置', persistent: '已同步', session: '仅会话' };
+  wordList.innerHTML = filteredEntries.map(({ orig, repl, scope }) => `
     <div class="word-item" data-key="${esc(orig)}" data-scope="${scope}">
       <span class="word-pair">
-        ${esc(orig)}<span class="arrow">→</span><span class="replacement">${esc(repl)}</span><span class="scope-badge">${scope === 'persistent' ? '已同步' : '仅会话'}</span>
+        ${esc(orig)}<span class="arrow">→</span><span class="replacement">${esc(repl)}</span><span class="scope-badge scope-${scope}">${badgeLabel[scope]}</span>
       </span>
       <button class="btn-delete" data-key="${esc(orig)}" data-scope="${scope}" title="删除">×</button>
     </div>
@@ -54,8 +77,12 @@ function setToggleUI(enabled) {
   toggleLabel.textContent = enabled ? '开启中' : '已关闭';
 }
 
-function updateMergedDictionary(persistentWords, sessionWords) {
-  const mergedDictionary = Object.assign({}, BUILT_IN_DICT, persistentWords, sessionWords);
+function updateMergedDictionary(persistentWords, sessionWords, blockedBuiltIn) {
+  const blocked = new Set(blockedBuiltIn || []);
+  const filteredBuiltIn = Object.fromEntries(
+    Object.entries(BUILT_IN_DICT).filter(([k]) => !blocked.has(k))
+  );
+  const mergedDictionary = Object.assign({}, filteredBuiltIn, persistentWords, sessionWords);
   chrome.storage.local.set({ mergedDictionary });
 }
 
@@ -124,18 +151,34 @@ function setSessionRecords(records, callback) {
   chrome.storage.session.set({ [SESSION_RECORDS_KEY]: records }, callback);
 }
 
+function getBlockedBuiltIn() {
+  return new Promise(resolve => {
+    chrome.storage.local.get({ blockedBuiltIn: [] }, data => resolve(data.blockedBuiltIn || []));
+  });
+}
+
+function setBlockedBuiltIn(list, callback) {
+  chrome.storage.local.set({ blockedBuiltIn: list }, callback);
+}
+
 async function refreshWordState() {
   latestPersistentWords = await getPersistentWords();
   latestSessionWords = await getSessionWords();
   latestPersistentRecords = await getPersistentRecords();
   latestSessionRecords = await getSessionRecords();
-  renderWordList(latestPersistentRecords, latestSessionRecords);
-  updateMergedDictionary(latestPersistentWords, latestSessionWords);
+  const blockedBuiltIn = await getBlockedBuiltIn();
+  renderWordList(latestPersistentRecords, latestSessionRecords, blockedBuiltIn);
+  updateMergedDictionary(latestPersistentWords, latestSessionWords, blockedBuiltIn);
 }
 
 chrome.storage.local.get({ enabled: true }, async data => {
   setToggleUI(data.enabled);
   await refreshWordState();
+});
+
+dictSearch.addEventListener('input', async () => {
+  const blockedBuiltIn = await getBlockedBuiltIn();
+  renderWordList(latestPersistentRecords, latestSessionRecords, blockedBuiltIn);
 });
 
 toggleEl.addEventListener('change', () => {
@@ -144,12 +187,22 @@ toggleEl.addEventListener('change', () => {
   chrome.storage.local.set({ enabled });
 });
 
-// Delete only removes from records, not from the actual replacement dictionary
+// Delete: built-in entries are blocked, custom entries are removed from records
 wordList.addEventListener('click', e => {
   const btn = e.target.closest('.btn-delete');
   if (!btn) return;
   const key = btn.dataset.key;
   const scope = btn.dataset.scope;
+
+  if (scope === 'builtin') {
+    getBlockedBuiltIn().then(blocked => {
+      if (!blocked.includes(key)) {
+        setBlockedBuiltIn([...blocked, key], refreshWordState);
+      }
+    });
+    return;
+  }
+
   if (scope === 'session') {
     getSessionRecords().then(sessionRecords => {
       const updated = Object.assign({}, sessionRecords);
@@ -158,6 +211,7 @@ wordList.addEventListener('click', e => {
     });
     return;
   }
+
   getPersistentRecords().then(records => {
     const updated = Object.assign({}, records);
     delete updated[key];
@@ -306,6 +360,71 @@ btnBatchAdd.addEventListener('click', () => {
       batchInput.value = '';
       errorMsg.textContent = `已批量添加 ${keys.length} 条（仅会话）`;
       refreshWordState();
+    });
+  });
+});
+
+btnBatchDelete.addEventListener('click', async () => {
+  errorMsg.textContent = '';
+  const rawText = batchInput.value.trim();
+  if (!rawText) {
+    errorMsg.textContent = '请输入要删除的原词（每行一个）';
+    return;
+  }
+
+  const keysToDelete = new Set();
+  rawText.split(/\r?\n/).forEach(line => {
+    const cleaned = line.trim();
+    if (!cleaned) return;
+    try {
+      const parsed = JSON.parse(cleaned);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        Object.keys(parsed).forEach(k => { if (k.trim()) keysToDelete.add(k.trim()); });
+        return;
+      }
+    } catch (_) {}
+    const parts = cleaned.split(/\s*(=>|->|=|:|,)\s*/);
+    const key = parts[0].trim();
+    if (key) keysToDelete.add(key);
+  });
+
+  if (keysToDelete.size === 0) {
+    errorMsg.textContent = '未识别到有效原词';
+    return;
+  }
+
+  const [persistentRecords, persistentWords, sessionRecords, sessionWords, blocked] = await Promise.all([
+    getPersistentRecords(),
+    getPersistentWords(),
+    getSessionRecords(),
+    getSessionWords(),
+    getBlockedBuiltIn()
+  ]);
+
+  const updatedPersistentRecords = Object.assign({}, persistentRecords);
+  const updatedPersistentWords = Object.assign({}, persistentWords);
+  const updatedSessionRecords = Object.assign({}, sessionRecords);
+  const updatedSessionWords = Object.assign({}, sessionWords);
+  keysToDelete.forEach(k => {
+    delete updatedPersistentRecords[k];
+    delete updatedPersistentWords[k];
+    delete updatedSessionRecords[k];
+    delete updatedSessionWords[k];
+  });
+
+  const newBlocked = [...new Set([...blocked, ...[...keysToDelete].filter(k => BUILT_IN_DICT[k])])];
+
+  chrome.storage.local.set({
+    customWords: updatedPersistentWords,
+    [PERSISTENT_RECORDS_KEY]: updatedPersistentRecords,
+    blockedBuiltIn: newBlocked
+  }, () => {
+    setSessionWords(updatedSessionWords, () => {
+      setSessionRecords(updatedSessionRecords, () => {
+        batchInput.value = '';
+        errorMsg.textContent = `已删除 ${keysToDelete.size} 条`;
+        refreshWordState();
+      });
     });
   });
 });
