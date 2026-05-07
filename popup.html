@@ -68,7 +68,7 @@
       letter-spacing: 0.5px;
     }
     .word-list {
-      max-height: 200px;
+      max-height: 120px;
       overflow-y: auto;
       border-bottom: 1px solid #eee;
     }
@@ -181,16 +181,16 @@
       border-radius: 999px;
       padding: 1px 6px;
     }
-    .batch-title {
-      margin-top: 6px;
-      font-size: 12px;
-      color: #666;
-      font-weight: 600;
+    .scope-builtin {
+      color: #888;
+      background: #f5f5f5;
+      border-color: #ddd;
     }
-    .batch-input {
-      width: 100%;
-      min-height: 72px;
-      resize: vertical;
+    .btn-batch-delete {
+      color: #c0392b;
+      border-color: #f5c6cb;
+    }
+    .btn-batch-delete:hover { background: #fff5f5; }
       border: 1px solid #ddd;
       border-radius: 5px;
       padding: 8px;
@@ -216,7 +216,10 @@
     </div>
   </div>
 
-  <div class="section-title">自定义词库添加记录</div>
+  <div class="section-title" style="display:flex; align-items:center; justify-content:space-between; padding-right:16px;">
+  词库
+  <input type="text" id="dict-search" placeholder="搜索…" style="font-size:12px; padding:2px 6px; border:1px solid #ddd; border-radius:4px; width:100px; font-weight:normal;">
+</div>
   <div class="word-list" id="word-list">
     <div class="empty-hint">暂无自定义词汇</div>
   </div>
@@ -236,9 +239,10 @@
     <button class="btn-export" id="btn-export">导出外部词库文件</button>
     <input type="file" id="file-import" accept=".json,application/json" hidden>
     <button class="btn-secondary" id="btn-import">导入外部词库文件</button>
-    <div class="batch-title">批量添加（支持 JSON 或 每行“原词=>替换词”）</div>
-    <textarea class="batch-input" id="batch-input" placeholder='{"词A":"词B"} 或&#10;词A=>词B'></textarea>
+    <div class="batch-title">批量添加<span style="font-size: 11px;">（支持 JSON 或 每行"原词=>替换词"）</span></div>
+    <textarea class="batch-input" id="batch-input" placeholder='{"词A":"词B"} 或 词A=>词B&#10; '></textarea>
     <button class="btn-secondary" id="btn-batch-add">批量添加</button>
+    <button class="btn-secondary btn-batch-delete" id="btn-batch-delete">批量删除</button>
   </div>
 
   <script src="dictionary.js"></script>
